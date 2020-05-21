@@ -63,7 +63,7 @@ class LogResultsCallback(BaseCallback):
 
 # Create and wrap the environment
 env = StationListEnv(
-    2000,
+    10000,
     np.array([3,7,12,13,8,14,13,10,5,15]),
     np.array([10,10,10,10,10,10,10,10,10,10])
 )
@@ -96,7 +96,7 @@ for agent in agentsToTest.keys():
     # Train agent, every 1000 steps log results
     callback = LogResultsCallback(check_freq=1000, log_dir=log_dir, verbose=1)
     # Train the agent
-    time_steps = 100000
+    time_steps = 1000000
     model.learn(total_timesteps=time_steps, callback=callback)
     results_plotter.plot_results([log_dir], time_steps, results_plotter.X_TIMESTEPS, agent)
     plt.savefig(agent + ".png")
