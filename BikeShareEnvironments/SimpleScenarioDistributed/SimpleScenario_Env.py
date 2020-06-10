@@ -101,8 +101,10 @@ class SimpleScenarioEnv(gym.Env):
 
 
             if self.stations[int(trip[0])] == 0:
+                # Get closest bikes Left and Right
                 left, right = self._findClosestBikes(start)
 
+                # Find cost for each direction
                 if left != -1:
                     leftCost = self.alpha * (start - self.bikes[left])
                 else:
@@ -113,25 +115,33 @@ class SimpleScenarioEnv(gym.Env):
                 else:
                     rightCost = 999
 
+                # Parse incentives
                 incentiveL = action[0]
                 incentiveR = action[1]
 
                 if incentiveL > leftCost and incentiveL <= self.budget:
+                    # The incentive to move Left was sufficient, the user request is satisfied
                     trip[0] = self.bikes[left]
                     self.budget -= incentiveL
                     satisfiedReq += 1
                     self.stations[int(trip[0])] -= 1
                     self.bikes.pop(left)
+                    # Add the trip to the trip handler with time of traveling distance + 1
                     self.tripHandler.addTrip(abs(int(trip[1]) - int(trip[0]))+1, trip[1])
                 elif incentiveR > rightCost and incentiveR <= self.budget:
+                    # The incentive to move Right was sufficient, the user request is satisfied
                     trip[0] = self.bikes[right]
                     self.budget -= incentiveR
                     satisfiedReq += 1
                     self.stations[int(trip[0])] -= 1
                     self.bikes.pop(right)
+                    # Add the trip to the trip handler with time of traveling distance + 1
                     self.tripHandler.addTrip(abs(int(trip[1]) - int(trip[0]))+1, trip[1])
             else:
+                # Find closest bikes
                 left, right = self._findClosestBikes(start)
+
+                # Use closest bike
                 if left == -1:
                     trip[0] = self.bikes[right]
                 elif right == -1:
@@ -144,8 +154,10 @@ class SimpleScenarioEnv(gym.Env):
                     self.bikes.pop(right)
                 satisfiedReq += 1
                 self.stations[int(trip[0])] -= 1
+                # Add the trip to the trip handler with time of traveling distance + 1
                 self.tripHandler.addTrip(abs(int(trip[1]) - int(trip[0]))+1, trip[1])
 
+        # Process bikes that have arrived this time step
         arrivals = self.tripHandler.timeStep()
         for arr in arrivals:
             self.bikes.append(arr)
@@ -168,10 +180,12 @@ class SimpleScenarioEnv(gym.Env):
         elif distribution == 1:
             possibleTrips, tripProbabilities = self._genAfternoonDistribution(self.numStations)
 
+        # Build trip distribution
+        # TODO: Improve speed, find a better way than so many conversions
         pTrips = []
         for poss in possibleTrips:
             pTrips.append(str(poss))
-        trips = choice(pTrips, 20, p=tripProbabilities)
+        trips = choice(pTrips, self.tripsPerHour, p=tripProbabilities)
         trips = [eval(t) for t in trips]
 
         return trips
@@ -202,6 +216,9 @@ class SimpleScenarioEnv(gym.Env):
         # (Possibly redundant) min is to catch if random.random() => 1
         return min(region + random.random(), region + .9999)
 
+    '''
+    Finds closest bike to a given location 'start', signifies a user's start location
+    '''
     def _findClosestBikes(self, start):
         left = self.numStations
         leftB = -1
@@ -249,6 +266,10 @@ class SimpleScenarioEnv(gym.Env):
     def absoluteDistrib(self, mdpt, value, exponent):
         return abs(abs(mdpt - value) - mdpt) ** exponent
 
+
+    '''
+    A distribution to incentivize movement outwards
+    '''
     def _genAfternoonDistribution(self, numberOfStations):
         possibleTrips = []
         probabilities = []
@@ -267,6 +288,9 @@ class SimpleScenarioEnv(gym.Env):
         return possibleTrips, probabilities
 
 
+    '''
+    A distribution to incentivize movement inwards
+    '''
     def _genMorningDistribution(self, numberOfStations):
         possibleTrips = []
         probabilities = []
